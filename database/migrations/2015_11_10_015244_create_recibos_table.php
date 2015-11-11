@@ -13,7 +13,8 @@ class CreateRecibosTable extends Migration
     public function up()
     {
         Schema::create('recibos', function (Blueprint $table) {
-            $table->increments('id');            
+            $table->increments('id');  
+            $table->string('num_control', 50)->nullable();
             $table->integer('persona_id', false, true)->nullable();
             $table->date('fecha_pago')->nullable();
             $table->decimal('monto_pagado', 14, 2)->nullable();
