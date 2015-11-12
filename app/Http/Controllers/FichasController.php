@@ -1,6 +1,8 @@
 <?php
 
-class FichasController extends BaseController {
+namespace App\Http\Controllers;
+
+class FichasController extends Controller {
 
     private $reporte;
 
