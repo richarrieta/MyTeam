@@ -19,13 +19,13 @@ class Club extends BaseModel
     protected function getPrettyFields()
     {
         return [
-            'nombre' => 'Posicion de juego',
+            'nombre' => 'Club',
         ];
     }
 
     public function getPrettyName()
     {
-        return "Posicion de Juego";
+        return "Club";
     }
 
     protected function getRules()

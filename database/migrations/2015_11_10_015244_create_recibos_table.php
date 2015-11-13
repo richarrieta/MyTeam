@@ -18,6 +18,7 @@ class CreateRecibosTable extends Migration
             $table->integer('persona_id', false, true)->nullable();
             $table->date('fecha_pago')->nullable();
             $table->decimal('monto_pagado', 14, 2)->nullable();
+            $table->integer('user_id', false, true)->nullable();
             $table->integer('version')->default(1);
             $table->boolean('ind_active')->default(1);
             $table->timestamps();

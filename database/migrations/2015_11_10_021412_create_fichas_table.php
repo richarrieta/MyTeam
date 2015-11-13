@@ -23,7 +23,7 @@ class CreateFichasTable extends Migration
             $table->date('fecha_ingreso');
             $table->date('fecha_egreso')->nullable();
             $table->integer('numero')->nullable();
-            $table->string('posicion_id')->nullable();
+            $table->integer('posicion_id', false, true)->nullable();
             $table->string('mejoras', 1500)->nullable();
             $table->string('fortalezas', 1500)->nullable();
             $table->string('observaciones', 1500)->nullable();

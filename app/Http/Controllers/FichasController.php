@@ -50,23 +50,23 @@ class FichasController extends Controller {
 
     public function postModificar() {
         Session::forget('ficha');
-        $solicitud = Ficha::findOrNew(Input::get('id'));
-        $solicitud->fill(Input::all());
+        $ficha = Ficha::findOrNew(Input::get('id'));
+        $ficha->fill(Input::all());
         if (Input::has('informe')) {
-            $solicitud->reglasInforme();
+            $ficha->reglasInforme();
         }
-        if ($solicitud->save()) {
-            $data['solicitud'] = $solicitud;
+        if ($ficha->save()) {
+            $data['solicitud'] = $ficha;
             $data['mensaje'] = "Datos guardados correctamente";
             if (Request::ajax()) {
                 return Response::json($data);
             }
-            return Redirect::to('solicitudes/modificar/' . $solicitud->id);
+            return Redirect::to('solicitudes/modificar/' . $ficha->id);
         } else {
             if (Request::ajax()) {
-                return Response::json(['errores' => $solicitud->getErrors()], 400);
+                return Response::json(['errores' => $ficha->getErrors()], 400);
             }
-            return Redirect::back()->withInput()->withErrors($solicitud->getErrors());
+            return Redirect::back()->withInput()->withErrors($ficha->getErrors());
         }
     }
 
@@ -111,24 +111,22 @@ class FichasController extends Controller {
         return View::make("solicitudes.plantilla", $data);
     }
 
-    public function getNueva() {
-        Session::forget('solicitud');
+    public function getNuevo() {
+        Session::forget('ficha');
         $data['nuevo'] = true;
-        $data['solicitud'] = new Solicitud();
-        $data['personaSolicitante'] = new Persona();
-        $data['personaBeneficiario'] = new Persona();
-        $data['familiares'] = $data['personaSolicitante']->familiaresBeneficiario;
-        $data['solicitudes'] = $data['personaSolicitante']->solicitudes;
-        return View::make("solicitudes.plantilla", $data);
+        $data['ficha'] = new \App\Ficha();
+        $data['jugador'] = new Persona();
+        $data['representante'] = new Persona();
+        return View::make("fichas.plantilla", $data);
     }
 
-    public function postNueva() {
-        $solicitud = Solicitud::crear(Input::all());
-        if (!$solicitud->hasErrors()) {
-            Session::set('solicitud', $solicitud->toArray());
-            return Redirect::to('solicitudes/modificar');
+    public function postNuevo() {
+        $ficha = \App\Ficha::crear(Input::all());
+        if (!$ficha->hasErrors()) {
+            Session::set('ficha', $ficha->toArray());
+            return Redirect::to('fichas/modificar');
         } else {
-            return Redirect::back()->withInput()->withErrors($solicitud->getErrors());
+            return Redirect::back()->withInput()->withErrors($ficha->getErrors());
         }
     }
 
@@ -167,11 +165,11 @@ class FichasController extends Controller {
     }
 
     public function postAceptarasignacion() {
-        $solicitud = Solicitud::findOrFail(Input::get('id'));
-        if ($solicitud->aceptarAsignacion()) {
-            return Redirect::to('solicitudes/modificar/' . $solicitud->id)->with('mensaje', 'Se aceptó la asignación de la solicitud: ' . $solicitud->id . ', correctamente');
+        $ficha = Solicitud::findOrFail(Input::get('id'));
+        if ($ficha->aceptarAsignacion()) {
+            return Redirect::to('solicitudes/modificar/' . $ficha->id)->with('mensaje', 'Se aceptó la asignación de la solicitud: ' . $ficha->id . ', correctamente');
         }
-        return Redirect::to('solicitudes?solo_asignadas=true')->with('error', $solicitud->getErrors()->first());
+        return Redirect::to('solicitudes?solo_asignadas=true')->with('error', $ficha->getErrors()->first());
     }
 
     public function getDevolverasignacion($id) {
@@ -180,11 +178,11 @@ class FichasController extends Controller {
     }
 
     public function postDevolverasignacion() {
-        $solicitud = Solicitud::findOrFail(Input::get('id'));
-        if ($solicitud->devolverAsignacion()) {
-            return Redirect::to('solicitudes?solo_asignadas=true')->with('mensaje', 'Se devolvió la asignación de la solicitud: ' . $solicitud->id . ', correctamente');
+        $ficha = Solicitud::findOrFail(Input::get('id'));
+        if ($ficha->devolverAsignacion()) {
+            return Redirect::to('solicitudes?solo_asignadas=true')->with('mensaje', 'Se devolvió la asignación de la solicitud: ' . $ficha->id . ', correctamente');
         }
-        return Redirect::to('solicitudes?solo_asignadas=true')->with('error', $solicitud->getErrors()->first());
+        return Redirect::to('solicitudes?solo_asignadas=true')->with('error', $ficha->getErrors()->first());
     }
 
     public function getSolicitaraprobacion($id) {
@@ -201,29 +199,29 @@ class FichasController extends Controller {
     }
 
     public function postSolicitaraprobacion() {
-        $solicitud = Solicitud::findOrFail(Input::get('id'));
+        $ficha = Solicitud::findOrFail(Input::get('id'));
         $num_proc = Input::get('num_proc');
         $proc_documento = new ayudantes\ProcesarDocumento();
-        $data = $proc_documento->buscarDefEvento($solicitud);
+        $data = $proc_documento->buscarDefEvento($ficha);
 //        $id_usuario = Sentry::getUser()->id;
-        if (!$solicitud->validarAprobacion(Input::get('usuario_autorizacion_id'))) {
+        if (!$ficha->validarAprobacion(Input::get('usuario_autorizacion_id'))) {
             if (!empty($data['eventos'])) {
                 $mensaje = $proc_documento->insertarDocumentos($data);
                 if (!empty($mensaje)) {
                     $this->cancelarTransaccion();
                     return Response::json($mensaje, 400);
                 } else {
-                    $solicitud->configurarPresupuesto($num_proc);
+                    $ficha->configurarPresupuesto($num_proc);
                     $proc_documento->atualizarEstatus($data, Input::get('usuario_autorizacion_id'));
                 }
             } else {
                 return Response::json(['errores' => 'No se puede aprobar la solicitud, defina al menos un tipo de documento'], 400);
             }
         } else {
-            return Response::json(['errores' => $solicitud->getErrors()], 400);
+            return Response::json(['errores' => $ficha->getErrors()], 400);
         }
-        Bitacora::registrar('Se solicitó la aprobación de la solicitud correctamente', $solicitud->id);
-        return Response::json(['mensaje' => 'Se solicito la aprobacion de la solicitud: ' . $solicitud->id . ', correctamente', 'url' => Redirect::back()->getTargetUrl()], 200);
+        Bitacora::registrar('Se solicitó la aprobación de la solicitud correctamente', $ficha->id);
+        return Response::json(['mensaje' => 'Se solicito la aprobacion de la solicitud: ' . $ficha->id . ', correctamente', 'url' => Redirect::back()->getTargetUrl()], 200);
     }
 
     public function cancelarTransaccion() {
@@ -238,12 +236,12 @@ class FichasController extends Controller {
     }
 
     public function postAnular() {
-        $solicitud = Solicitud::findOrFail(Input::get('id'));
-        if ($solicitud->anular(Input::get('nota'))) {
+        $ficha = Solicitud::findOrFail(Input::get('id'));
+        if ($ficha->anular(Input::get('nota'))) {
             return Redirect::to('solicitudes?estatus[]=ELA&estatus[]=ART&estatus[]=ELD&estatus[]=ACA&estatus[]=DEV&estatus[]=EAA&anulando=true')
-                            ->with('mensaje', 'Se anuló la solicitud: ' . $solicitud->id . ', correctamente');
+                            ->with('mensaje', 'Se anuló la solicitud: ' . $ficha->id . ', correctamente');
         }
-        return Redirect::to('solicitudes?estatus[]=ELA&estatus[]=ART&estatus[]=ELD&estatus[]=ACA&estatus[]=DEV&estatus[]=EAA&anulando=true')->with('error', $solicitud->getErrors()->first());
+        return Redirect::to('solicitudes?estatus[]=ELA&estatus[]=ART&estatus[]=ELD&estatus[]=ACA&estatus[]=DEV&estatus[]=EAA&anulando=true')->with('error', $ficha->getErrors()->first());
     }
 
     public function getCerrar($id) {
@@ -253,11 +251,11 @@ class FichasController extends Controller {
     }
 
     public function postCerrar() {
-        $solicitud = Solicitud::findOrFail(Input::get('id'));
-        if ($solicitud->cerrar()) {
-            return Redirect::to('solicitudes?estatus[]=APR&cerrar=true')->with('mensaje', 'Se cerro la solicitud: ' . $solicitud->id . ', correctamente');
+        $ficha = Solicitud::findOrFail(Input::get('id'));
+        if ($ficha->cerrar()) {
+            return Redirect::to('solicitudes?estatus[]=APR&cerrar=true')->with('mensaje', 'Se cerro la solicitud: ' . $ficha->id . ', correctamente');
         }
-        return Redirect::to('solicitudes?estatus[]=APR&cerrar=true')->with('error', $solicitud->getErrors()->first());
+        return Redirect::to('solicitudes?estatus[]=APR&cerrar=true')->with('error', $ficha->getErrors()->first());
     }
 
     public function getBitacora($id, $store = false) {
